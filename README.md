@@ -11,6 +11,7 @@ A single-file web app for youth softball coaches to instantly generate a batting
 - **Click-to-swap** any two players in either the batting lineup or the fielding grid
 - **Rule validation** with inline error messages — printing is blocked until all violations are resolved
 - **PDF export** opens in a new browser tab for printing or saving, with no browser headers or footers
+- **Last updated date and What's New** in the page footer, showing when the site last changed and what's different
 - **Responsive design** — works on desktop, tablet, and mobile
 - No installation, no backend, no dependencies to install — just open the HTML file
 
@@ -19,7 +20,7 @@ A single-file web app for youth softball coaches to instantly generate a batting
 ## How to Use
 
 ### 1. Enter Game Info
-Fill in the game date, home team name, away team name, and the field name (e.g., *Sandy Plains Field 3*). This card stays visible after you generate a lineup, so you can fix any of these fields at any time without needing to regenerate.
+Fill in the game date, home team name, away team name, and the field. Pick the field from the dropdown (Sandy Plains Fields 1–4, Shaw Park Fields 2–4) or type in any other field name. This card stays visible after you generate a lineup, so you can fix any of these fields at any time without needing to regenerate.
 
 ### 2. Add Your Roster
 Enter each player's name and jersey number individually. Use **+ Add Player** to add rows (6–12 players supported). At 12 players, a Bench position is added to the fielding rotation.
@@ -65,23 +66,3 @@ The generator enforces the following rules automatically. Manual swaps are valid
 | 6 | Pitcher, Catcher, 1st Base, 2nd Base, Short Stop, 3rd Base |
 
 ---
-
-## Running Locally
-
-No build step or server required. Just open the file in any modern browser:
-
-```
-open index.html
-```
-
-Or double-click the file in your file explorer.
-
----
-
-## Technical Notes
-
-- **Single file** — all HTML, CSS, and JavaScript is self-contained in `index.html`, including the header icon (embedded as a base64 PNG)
-- **Fonts** loaded from Google Fonts (requires internet connection)
-- **PDF generation** uses [jsPDF](https://github.com/parallax/jsPDF) and [jsPDF-AutoTable](https://github.com/simonbengtsson/jsPDF-AutoTable) loaded from CDN (requires internet connection)
-- **Roster storage** uses the browser's `localStorage` under the key `sandyPlains8uSavedRoster` — it's local to that browser and device, not synced anywhere
-- The fielding grid is generated using a backtracking Latin rectangle algorithm that satisfies the infield minimum rule within a bounded number of attempts, with a cyclic fallback
