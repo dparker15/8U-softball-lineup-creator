@@ -92,7 +92,16 @@
     .player-row { display: flex; align-items: center; gap: 0.5rem; }
     .player-num { font-size: 0.8rem; font-weight: 700; color: var(--text-light); width: 22px; text-align: right; flex-shrink: 0; }
     .player-row .name-inp { flex: 1; min-width: 0; }
-    .player-row .num-inp { width: 68px; flex-shrink: 0; }
+    .player-row .num-inp { width: 76px; flex-shrink: 0; }
+    /* Heading row reuses the player-row layout so each heading sits exactly over its field */
+    .player-head { margin-bottom: 0.4rem; }
+    .player-head > span:not(.player-num) {
+      font-size: 0.75rem; font-weight: 600; color: var(--text-light);
+      text-transform: uppercase; letter-spacing: .4px;
+    }
+    .player-head .head-name { flex: 1; min-width: 0; }
+    .player-head .head-jersey { width: 76px; flex-shrink: 0; text-align: center; }
+    .player-head .btn { visibility: hidden; }
 
     .btn {
       display: inline-flex;
@@ -285,6 +294,60 @@
     }
 
     .print-header { display: none; }
+
+    /* Field combobox: page-built dropdown that also accepts typed values */
+    .combo { position: relative; display: flex; }
+    .combo input { flex: 1; min-width: 0; padding-right: 2rem; }
+    .combo-toggle {
+      position: absolute; right: 2px; top: 2px; bottom: 2px; width: 1.8rem;
+      background: none; border: none; cursor: pointer;
+      color: var(--text-light); font-size: 0.9rem; font-family: inherit;
+    }
+    .combo-toggle:hover { color: var(--primary); }
+    .combo-list {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
+      max-height: 240px; overflow-y: auto;
+      list-style: none; padding: 0.25rem 0;
+      background: var(--card); border: 1.5px solid var(--border); border-radius: 6px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+    .combo-list li { padding: 0.45rem 0.7rem; font-size: 0.9rem; cursor: pointer; }
+    .combo-list li.active, .combo-list li:hover { background: var(--infield-bg); color: var(--primary); }
+
+    /* ── Footer: last-updated date + What's New ── */
+    .site-footer {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0.5rem 1rem 2rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-light);
+    }
+    .site-footer summary {
+      display: inline-block;
+      cursor: pointer;
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      list-style: none;
+    }
+    .site-footer summary::-webkit-details-marker { display: none; }
+    .site-footer summary:hover { color: var(--primary); background: var(--card); }
+    .site-footer .whats-new-link { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+    .site-footer details[open] .whats-new-link { text-decoration: none; }
+    .changelog {
+      max-width: 560px;
+      margin: 0.5rem auto 0;
+      padding: 1rem 1.25rem;
+      text-align: left;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .changelog h4 { font-size: 0.8rem; font-weight: 600; color: var(--text); margin: 0.75rem 0 0.3rem; }
+    .changelog h4:first-child { margin-top: 0; }
+    .changelog ul { padding-left: 1.1rem; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -314,7 +377,13 @@
       </div>
       <div class="form-group">
         <label for="fieldName">Field</label>
-        <input type="text" id="fieldName" placeholder="e.g., Sandy Plains Field 3" oninput="updateGameInfoDisplay()">
+        <!-- Dropdown of common fields (FIELD_OPTIONS in the script); any other field name can still be typed in -->
+        <div class="combo" id="fieldCombo">
+          <input type="text" id="fieldName" autocomplete="off" placeholder="Choose or type a field"
+                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="fieldOptions">
+          <button type="button" class="combo-toggle" tabindex="-1" aria-label="Show field list">▾</button>
+          <ul class="combo-list" id="fieldOptions" role="listbox" hidden></ul>
+        </div>
       </div>
     </div>
   </div>
@@ -329,10 +398,11 @@
         <span style="font-size:0.75rem;font-weight:400;color:var(--text-light);margin-left:4px">(6–12)</span>
       </h2>
 
-      <div style="display:grid;grid-template-columns:1fr 80px 32px;gap:0.5rem;margin-bottom:0.4rem;padding:0 0 0 28px">
-        <span style="font-size:0.75rem;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px">Name</span>
-        <span style="font-size:0.75rem;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px">Jersey #</span>
-        <span></span>
+      <div class="player-row player-head">
+        <span class="player-num"></span>
+        <span class="head-name">Name</span>
+        <span class="head-jersey">Jersey #</span>
+        <button class="btn btn-ghost" tabindex="-1" aria-hidden="true">×</button>
       </div>
       <div class="players-list" id="playersList"></div>
       <div class="btn-row" style="margin-top:0.75rem">
@@ -441,12 +511,35 @@
 
 </main>
 
+<!-- Footer: date and notes come from CHANGELOG in the script below -->
+<footer class="site-footer no-print">
+  <details>
+    <summary>Last updated <span id="lastUpdated"></span> · <span class="whats-new-link">What's new</span></summary>
+    <div class="changelog" id="changelog"></div>
+  </details>
+</footer>
+
 <!-- jsPDF + AutoTable for PDF export. To revert to browser print, remove these two lines and see doPrint() note in JS. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <script>
 // ── Constants ──────────────────────────────────────────────────────────────
+
+// What's New / Last Updated. Newest entry first, one entry per day. When a
+// set of changes is finalized, add a new entry at the top, or add to today's
+// entry if one already exists. The footer's "Last updated" date
+// comes from the first entry. Write the notes for coaches, not developers.
+const CHANGELOG = [
+  {
+    date: '2026-10-07',
+    changes: [
+      'Jersey # heading now sits centered over its field, and the field is a little wider.',
+      'Field now has a dropdown of Sandy Plains and Shaw Park fields, and you can still type in any other field.',
+      'Added this What\'s New list and the last-updated date.'
+    ]
+  }
+];
 
 const POSITIONS_BY_COUNT = {
   12: ['Pitcher','Catcher','1st Base','2nd Base','Short Stop','3rd Base','Short Field','Left Field','Left Center Field','Right Center Field','Right Field','Bench'],
@@ -458,7 +551,7 @@ const POSITIONS_BY_COUNT = {
    6: ['Pitcher','Catcher','1st Base','2nd Base','Short Stop','3rd Base']
 };
 
-const INFIELD_SET = new Set(['Pitcher','1st Base','2nd Base','3rd Base','Short Stop','Short Field']);
+const INFIELD_SET = new Set(['Pitcher','1st Base','2nd Base','Short Stop','3rd Base','Short Field']);
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -1326,6 +1419,101 @@ function doPrintPDF() {
   const blob = doc.output('blob');
   window.open(URL.createObjectURL(blob), '_blank');
 }
+
+// ── Footer: Last Updated + What's New ────────────────────────────────────────
+
+function formatChangelogDate(iso) {
+  return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function renderChangelog() {
+  document.getElementById('lastUpdated').textContent = formatChangelogDate(CHANGELOG[0].date);
+  document.getElementById('changelog').innerHTML = CHANGELOG.map(entry =>
+    `<h4>${formatChangelogDate(entry.date)}</h4><ul>${entry.changes.map(c => `<li>${escHtml(c)}</li>`).join('')}</ul>`
+  ).join('');
+}
+
+renderChangelog();
+
+// ── Field dropdown ───────────────────────────────────────────────────────────
+// Built into the page (not a <datalist>) so it looks the same in every browser
+// and long field names aren't cut off. Typed values not in the list are fine.
+
+const FIELD_OPTIONS = [
+  'Sandy Plains Field 1', 'Sandy Plains Field 2', 'Sandy Plains Field 3', 'Sandy Plains Field 4',
+  'Shaw Park Field 2', 'Shaw Park Field 3', 'Shaw Park Field 4'
+];
+
+function setupFieldCombo() {
+  const combo  = document.getElementById('fieldCombo');
+  const input  = document.getElementById('fieldName');
+  const list   = document.getElementById('fieldOptions');
+  const toggle = combo.querySelector('.combo-toggle');
+  let shown = [];
+  let active = -1;
+
+  function render(filter) {
+    const q = filter.trim().toLowerCase();
+    shown = FIELD_OPTIONS.filter(f => !q || f.toLowerCase().includes(q));
+    active = -1;
+    list.innerHTML = shown.map((f, i) => `<li role="option" id="fieldOpt${i}">${escHtml(f)}</li>`).join('');
+    list.hidden = !shown.length;
+    input.setAttribute('aria-expanded', String(!list.hidden));
+  }
+  function close() {
+    list.hidden = true; active = -1;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+  }
+  function choose(i) {
+    input.value = shown[i];
+    updateGameInfoDisplay();
+    close();
+  }
+  function highlight(i) {
+    const items = list.querySelectorAll('li');
+    items.forEach(li => li.classList.remove('active'));
+    active = i;
+    if (items[i]) {
+      items[i].classList.add('active');
+      items[i].scrollIntoView({ block: 'nearest' });
+      input.setAttribute('aria-activedescendant', items[i].id);
+    }
+  }
+
+  // Clicking or focusing shows the full list; typing narrows it
+  input.addEventListener('focus', () => render(''));
+  input.addEventListener('click', () => { if (list.hidden) render(''); });
+  input.addEventListener('input', () => { render(input.value); updateGameInfoDisplay(); });
+  toggle.addEventListener('click', () => {
+    if (list.hidden) { render(''); input.focus(); } else close();
+  });
+  // mousedown (not click) so the input doesn't lose focus before the pick lands
+  list.addEventListener('mousedown', e => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    e.preventDefault();
+    choose([...list.children].indexOf(li));
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (list.hidden) render('');
+      highlight(Math.min(active + 1, shown.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      highlight(Math.max(active - 1, 0));
+    } else if (e.key === 'Enter' && !list.hidden && active >= 0) {
+      e.preventDefault();
+      choose(active);
+    } else if (e.key === 'Escape' || e.key === 'Tab') {
+      close();
+    }
+  });
+  document.addEventListener('mousedown', e => { if (!combo.contains(e.target)) close(); });
+}
+
+setupFieldCombo();
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
