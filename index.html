@@ -476,7 +476,7 @@
                 <span>Infield position</span>
               </div>
             </div>
-            <p class="hint">Click any two cells to swap players</p>
+            <p class="hint">Click two cells in the same inning to swap players</p>
           </div>
           <div class="fielding-scroll">
             <table id="fieldingTable">
@@ -531,6 +531,12 @@
 // entry if one already exists. The footer's "Last updated" date
 // comes from the first entry. Write the notes for coaches, not developers.
 const CHANGELOG = [
+  {
+    date: '2026-10-14',
+    changes: [
+      'Fielding swaps are now limited to players in the same inning. Clicking a cell in a different inning moves the selection there instead of swapping.'
+    ]
+  },
   {
     date: '2026-10-07',
     changes: [
@@ -997,8 +1003,13 @@ function handleFieldingClick(inn, pos) {
   if (!selectedCell) {
     selectedCell = { type: 'fielding', inn, pos };
     setFieldingHighlight(inn, pos, true);
+  } else if (selectedCell.type === 'fielding' && selectedCell.inn !== inn) {
+    // Swaps are only allowed within the same inning — move the selection instead
+    clearHighlights();
+    selectedCell = { type: 'fielding', inn, pos };
+    setFieldingHighlight(inn, pos, true);
   } else if (selectedCell.type === 'fielding') {
-    if (selectedCell.inn === inn && selectedCell.pos === pos) {
+    if (selectedCell.pos === pos) {
       setFieldingHighlight(inn, pos, false);
       selectedCell = null;
     } else {
